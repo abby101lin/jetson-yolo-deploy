@@ -25,15 +25,17 @@ sudo systemctl disable --now yolo
 
 ## 使用 Docker 時
 改成用容器的 restart policy，就不需要 systemd 服務檔：
+先依 [03-inference-env.md](03-inference-env.md) A.2 建好 `jetson-yolo` 映像檔，再執行：
 ```bash
-sudo docker run -d --name yolo --restart unless-stopped \
+docker run -d --name yolo --restart unless-stopped \
   --ipc=host --runtime=nvidia --network host \
   -v /tmp/argus_socket:/tmp/argus_socket \
   -v ~/jetson-yolo-deploy:/workspace -w /workspace/app \
-  ultralytics/ultralytics:latest-jetson-jetpack6 \
-  bash -c "pip install fastapi uvicorn && python3 -m uvicorn server:app --host 0.0.0.0 --port 8000"
+  jetson-yolo \
+  python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
 ```
-> 正式環境建議自己寫 Dockerfile，把依賴套件先裝進映像檔，這樣每次啟動就不必重新安裝。
+- 管理指令：`docker logs -f yolo`、`docker restart yolo`、`docker rm -f yolo`
+- 更新流程的第 2、3 步改成在容器內 export，然後執行 `docker restart yolo`
 
 ## 更新流程
 1. 開發機：`scp best.pt user@<jetson-ip>:~/jetson-yolo-deploy/models/`

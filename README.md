@@ -40,6 +40,7 @@ jetson-yolo-deploy/
 │   ├── server.py              # FastAPI 推論服務
 │   └── requirements.txt
 ├── deploy/
+│   ├── Dockerfile             # 推論映像檔（OpenCV 改用支援 GStreamer 的版本）
 │   └── yolo.service           # systemd 服務設定
 ├── scripts/
 │   ├── check_env.sh           # 檢查 JetPack / CUDA / OpenCV GStreamer
