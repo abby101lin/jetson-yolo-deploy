@@ -26,7 +26,9 @@
 ```
 jetson-yolo-deploy/
 ├── README.md                  # 本文件
+├── .githooks/pre-commit       # commit 前的隱私檢查（IP / 密碼 / 金鑰）
 ├── docs/                      # 部署流程文件（依序執行）
+│   ├── 00-laptop-setup.md     # 開發機（筆電）環境初始化、SSH 金鑰
 │   ├── 01-environment.md      # Jetson 系統環境確認與效能設定
 │   ├── 02-camera.md           # MIPI 相機啟用與測試
 │   ├── 03-inference-env.md    # 推論環境安裝（Docker / 原生）
@@ -47,6 +49,8 @@ jetson-yolo-deploy/
 ```
 
 ## 快速開始
+
+> 第一次使用請先依 [docs/00-laptop-setup.md](docs/00-laptop-setup.md) 設定好自己的筆電（git、隱私檢查、SSH 金鑰）。
 
 ```bash
 # 1. 開發機：上傳專案與模型
@@ -70,6 +74,7 @@ http://<jetson-ip>:8000/detections   # 偵測結果 JSON
 
 ## 部署進度檢查表
 
+- [ ] 00 筆電完成設定，`ssh jetson` 可以免密碼登入
 - [ ] 01 確認 JetPack 版本、開啟 MAXN 效能模式
 - [ ] 02 jetson-io 設定 CSI，相機拍照測試成功
 - [ ] 03 PyTorch (CUDA) 可用、OpenCV 支援 GStreamer

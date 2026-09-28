@@ -1,0 +1,25 @@
+#!/bin/sh
+# 擋下含隱私資訊的 commit：真實 IP、密碼、token、私鑰
+# 確定要提交時可用 git commit --no-verify 略過
+
+added=$(git diff --cached -U0 --no-color | grep '^+' | grep -v '^+++')
+[ -z "$added" ] && exit 0
+
+hits=""
+# IPv4（排除 0.0.0.0 / 127.x / 版本號形式以外的一般位址）
+ip=$(printf '%s\n' "$added" | grep -nE '(^|[^0-9.])([0-9]{1,3}\.){3}[0-9]{1,3}([^0-9.]|$)' \
+     | grep -vE '(^|[^0-9.])(0\.0\.0\.0|127\.[0-9]+\.[0-9]+\.[0-9]+)([^0-9.]|$)')
+[ -n "$ip" ] && hits="$hits\n[IP]\n$ip"
+# 密碼 / token / 金鑰賦值
+pw=$(printf '%s\n' "$added" | grep -niE '(passw(or)?d|passwd|pwd|secret|token|api[_-]?key)[[:space:]]*[:=][[:space:]]*["'\'']?[^[:space:]"'\''<$`]{3,}')
+[ -n "$pw" ] && hits="$hits\n[密碼/Token]\n$pw"
+# 私鑰、GitHub token
+key=$(printf '%s\n' "$added" | grep -nE 'BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}')
+[ -n "$key" ] && hits="$hits\n[金鑰]\n$key"
+
+if [ -n "$hits" ]; then
+  printf '\n✗ commit 已中止：偵測到可能的隱私資訊\n%b\n\n' "$hits"
+  printf '請改用佔位符（如 <jetson-ip>、<USER>）或放進 .env。\n確定沒問題可用 git commit --no-verify\n'
+  exit 1
+fi
+exit 0
