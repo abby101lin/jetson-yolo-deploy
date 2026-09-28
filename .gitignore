@@ -5,3 +5,15 @@ test.jpg
 test.mp4
 __pycache__/
 *.onnx
+
+# 隱私 / 本機設定：帳號、密碼、IP 等請放在這些檔案，不要寫進程式或文件
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+secrets/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
