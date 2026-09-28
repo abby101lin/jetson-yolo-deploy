@@ -1,0 +1,6 @@
+# torch / torchvision: install Jetson wheels separately (see docs/03-inference-env.md)
+# opencv: use system python3-opencv with GStreamer support
+ultralytics
+fastapi
+uvicorn
+numpy<2

@@ -1,0 +1,16 @@
+[Unit]
+Description=Jetson YOLO inference service
+After=network-online.target nvargus-daemon.service
+Wants=network-online.target
+
+[Service]
+User=<USER>
+WorkingDirectory=/home/<USER>/jetson-yolo-deploy/app
+Environment=MODEL_PATH=/home/<USER>/jetson-yolo-deploy/models/best.engine
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

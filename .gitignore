@@ -1,0 +1,7 @@
+models/*
+!models/.gitkeep
+runs/
+test.jpg
+test.mp4
+__pycache__/
+*.onnx
