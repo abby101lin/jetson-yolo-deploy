@@ -72,7 +72,14 @@ gh auth status       # 應該會顯示 Logged in to github.com account <你的�
 ```powershell
 gh auth switch -u <你的帳號>
 ```
-> `git push` 會用目前使用中的帳號。push 時出現權限錯誤，先檢查是不是切到別的帳號了。
+**注意：`gh auth switch` 不會改變 `git push` 用的帳號。** `git push` 預設是用 Windows 的 Git Credential Manager 記住的帳號，跟 gh 是分開的，所以可能還是用舊帳號推送，結果被拒絕（見[常見問題](#常見問題)的 403）。解法是在 clone 完專案後（0.4），**在專案資料夾裡**執行下面三行，讓這個專案改用 gh 的登入資訊，並指定帳號：
+```powershell
+git config --local credential.https://github.com.helper ""
+git config --local --add credential.https://github.com.helper "!gh auth git-credential"
+git config --local credential.https://github.com.username <你的帳號>
+```
+- 只影響這個專案，其他專案照舊。
+- gh 只會提供**目前使用中帳號**的登入資訊。所以如果 gh 切到了別的帳號，推送會失敗並要求登入（不會用錯帳號推上去），請先執行 `gh auth switch -u <你的帳號>` 再推送。
 
 ### 0.3 設定 git 作者（使用 noreply email）
 這是公開 repo，commit 的作者 email 任何人都看得到。建議改用 GitHub 提供的 noreply 地址：
@@ -200,6 +207,7 @@ type scripts\check_env.sh | ssh jetson "tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' | 
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` | Jetson 重灌過，或是 IP 換了另一台機器。確認沒問題後執行 `ssh-keygen -R <jetson-ip>` |
 | `Connection timed out` | 筆電和 Jetson 不在同一個網段，或是 Jetson 的 IP 變了（可以在 Jetson 上執行 `ip -4 addr` 查詢） |
 | commit 被隱私檢查擋下 | 把被擋下的那一行改成佔位符，或把真實值移到 `.env` |
+| `git push` 出現 `Permission to ... denied to <其他帳號>` / `403` | git 用了另一個 GitHub 帳號推送。只執行 `gh auth switch` 不夠，要照 [0.2](#02-登入-github) 的「多個帳號」設定這個專案的登入方式 |
 | `git push` 要求登入 | 執行 `gh auth login`，或是依照跳出的瀏覽器視窗登入 |
 
 ## 完成條件
