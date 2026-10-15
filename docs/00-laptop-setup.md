@@ -12,6 +12,25 @@
 
 ---
 
+## 開始之前：PowerShell 是什麼
+本文件的指令都要在 **PowerShell** 裡執行。PowerShell 是 Windows 內建的命令列工具，打開後會有一個可以打字輸入指令的視窗。
+
+**怎麼開啟**（任選一種）：
+- VS Code 裡按 `` Ctrl+` ``（數字 1 左邊那個鍵），下方會出現終端機面板，預設就是 PowerShell
+- VS Code 上方選單：「終端機」→「新增終端機」
+- Windows 開始鍵 → 輸入 `PowerShell` → 點 **Windows PowerShell**
+
+**看提示字元，就知道自己在哪台機器上**：
+| 提示字元長這樣 | 這是什麼 | 在哪台機器 |
+|---|---|---|
+| `PS C:\...>`、`PS F:\...>` | PowerShell | 自己的筆電 ← 本文件的指令都在這裡執行 |
+| `<帳號>@<主機名稱>:~$` | Linux 的命令列（bash） | Jetson（已經 SSH 登入了），輸入 `exit` 就能回到筆電 |
+| `C:\...>`（前面沒有 `PS`） | 舊版的命令提示字元（cmd） | 自己的筆電，但部分指令不能用，請改開 PowerShell |
+
+> 貼上指令：在終端機裡按 `Ctrl+V` 或滑鼠右鍵。很長的指令請**整行**複製，再按 Enter 執行。
+
+---
+
 ## 步驟
 
 ### 0.1 安裝工具
@@ -41,6 +60,19 @@ gh auth login        # 選 GitHub.com → HTTPS → Login with a web browser
 gh auth status       # 應該會顯示 Logged in to github.com account <你的帳號>
 ```
 > 沒裝 gh 也可以。第一次 `git push` 時，Git Credential Manager 會跳出瀏覽器讓你登入。
+
+**同一台筆電有多個 GitHub 帳號時**：`gh auth status` 會把每個帳號都列出來，每個帳號底下各有一行 `Active account`：
+```
+✓ Logged in to github.com account <帳號A> (keyring)
+  - Active account: true       ← 目前使用中的帳號
+✓ Logged in to github.com account <帳號B> (keyring)
+  - Active account: false      ← 有登入，但目前沒在用
+```
+同一時間只會有一個帳號是 `true`，另一個顯示 `false` 是正常的。請先找到帳號名稱那一行，再看它下面的 `Active account`。要切換帳號：
+```powershell
+gh auth switch -u <你的帳號>
+```
+> `git push` 會用目前使用中的帳號。push 時出現權限錯誤，先檢查是不是切到別的帳號了。
 
 ### 0.3 設定 git 作者（使用 noreply email）
 這是公開 repo，commit 的作者 email 任何人都看得到。建議改用 GitHub 提供的 noreply 地址：
@@ -76,7 +108,9 @@ git config core.hooksPath      # 應該顯示 .githooks
 ```powershell
 ssh-keygen -t ed25519 -C "<名字>@jetson-yolo-deploy" -f "$env:USERPROFILE\.ssh\id_ed25519_<名字>"
 ```
-- 詢問 passphrase 時：直接按 Enter 就是不設密碼（方便自動化）；有輸入就是每次使用金鑰都要輸入（比較安全）。
+- **一定要加 `-f`** 指定檔名。沒加的話，ssh-keygen 會先問 `Enter file in which to save the key`，直接按 Enter 就會存成預設的 `id_ed25519`，跟文件後面的設定對不上。
+- 如果出現 `Overwrite (y/n)?`，代表這個檔名**已經有金鑰**了。這把金鑰如果已經放到 Jetson 上，請回答 **n**，否則原本的免密碼登入會失效。這個問題只有在檔案已經存在時才會出現。
+- 詢問 passphrase 時：直接按 Enter 就是不設密碼（方便自動化）；有輸入就是每次使用金鑰都要輸入（比較安全）。要按兩次，第二次是確認。
 - 會產生兩個檔案：
   - `id_ed25519_<名字>`：**私鑰**，只留在自己的筆電，絕對不要傳給別人或放進專案
   - `id_ed25519_<名字>.pub`：**公鑰**，要放到 Jetson 上
@@ -103,7 +137,9 @@ ssh-copy-id -i ~/.ssh/id_ed25519_<名字>.pub <你的帳號>@<jetson-ip>
 ```powershell
 code "$env:USERPROFILE\.ssh\config"
 ```
-在檔案最後面加上：
+> 也可以在 VS Code 按 `Ctrl+P`，貼上 `C:\Users\<Windows 使用者名稱>\.ssh\config` 後按 Enter。這個檔案**沒有副檔名**，就叫 `config`。
+
+在檔案最後面空一行，加上下面這段（`Host` 靠最左邊，下面幾行縮排 2 格）：
 ```
 Host jetson <jetson-ip>
   HostName <jetson-ip>
@@ -144,19 +180,22 @@ sudo usermod -aG video,docker <帳號>          # video：存取相機；docker�
 ---
 
 ## 驗證
-在專案資料夾執行，會在 Jetson 上跑環境檢查：
+在專案資料夾執行（提示字元要是 `PS ...\jetson-yolo-deploy>`，因為指令裡的 `scripts\check_env.sh` 是相對路徑），會在 Jetson 上跑環境檢查：
 ```powershell
 type scripts\check_env.sh | ssh jetson "tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' | bash -s"
 ```
 > macOS / Linux：`ssh jetson 'bash -s' < scripts/check_env.sh`
 
 有顯示 L4T、CUDA、TensorRT 等資訊，就代表連線設定完成。檢查結果怎麼看，請參考 [01-environment.md](01-environment.md)。
+> 採用 Docker 方案（[03](03-inference-env.md) 的做法 A）時，`PyTorch` 和 `Ultralytics` 會顯示 `FAILED: No module named ...`，這是**正常的**。這兩個套件裝在容器裡，Jetson 主機本身沒有裝。
 
 ## 常見問題
 | 狀況 | 原因 / 解法 |
 |---|---|
 | 放好公鑰還是會問密碼 | 1. `~/.ssh/config` 沒有設定 `IdentityFile`（見 0.7）<br>2. Jetson 上的權限太寬：`chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`，家目錄不能讓其他人寫入<br>3. 用 `ssh -v jetson` 查看實際嘗試了哪些金鑰 |
 | 腳本在 Jetson 上出現 `$'\r': command not found` | 用 PowerShell 管線傳送時少了 `tr -d '\r'`（見 0.6 / 驗證的寫法） |
+| `Could not resolve hostname jetson` | 這個指令是在 **Jetson 裡**執行的，不是在筆電上（提示字元是 `<帳號>@<主機名稱>:~$`）。`jetson` 別名只存在筆電的 `~/.ssh/config`。請先 `exit` 回到 `PS ...>` 再執行 |
+| 瀏覽器開 `http://localhost:8000` 出現 `ERR_CONNECTION_REFUSED` | SSH tunnel 沒有建立。一般的 `ssh jetson` 只是登入，要用 `ssh -N -L 8000:localhost:8000 jetson`，而且視窗要一直開著（見 [05](05-inference-service.md)） |
 | `Permission denied (publickey,password)` | 帳號名稱打錯，或是公鑰被放到別的帳號底下 |
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` | Jetson 重灌過，或是 IP 換了另一台機器。確認沒問題後執行 `ssh-keygen -R <jetson-ip>` |
 | `Connection timed out` | 筆電和 Jetson 不在同一個網段，或是 Jetson 的 IP 變了（可以在 Jetson 上執行 `ip -4 addr` 查詢） |
