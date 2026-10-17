@@ -76,7 +76,7 @@ http://<jetson-ip>:8000/detections   # 偵測結果 JSON
 ## 部署進度檢查表
 
 - [ ] 00 筆電完成設定，`ssh jetson` 可以免密碼登入
-- [ ] 01 確認 JetPack 版本、開啟 MAXN 效能模式
+- [ ] 01 確認 JetPack 版本、CUDA / TensorRT，依需求設定電源模式（先查模式編號）
 - [ ] 02 jetson-io 設定 CSI，相機拍照測試成功
 - [ ] 03 PyTorch (CUDA) 可用、OpenCV 支援 GStreamer
 - [ ] 04 在 Jetson 本機產生 `best.engine`
