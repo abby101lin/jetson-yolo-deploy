@@ -41,6 +41,9 @@ docker run -it --rm --ipc=host --runtime=nvidia --network host \
 ```
 - `/tmp/argus_socket` 一定要掛載，否則容器內的 `nvarguscamerasrc` 會打不開相機。
 - 容器內的 TensorRT 版本和 Jetson 本機不同（例如容器是 10.7、本機是 10.3），所以 **engine 一定要在容器內轉換，並在容器內執行**。
+- 進入後提示字元會變成 `root@<主機名稱>:/workspace#`。容器裡的 `/workspace` 就是主機上的 `~/jetson-yolo-deploy`。輸入 `exit` 離開。
+- 容器內是 **root** 身分，在 `/workspace` 產生的檔案（例如 `.engine`、`runs/`）擁有者會是 root，一般使用者之後無法刪除或覆蓋。`scripts/export_model.sh` 會自動改回來；手動產生的檔案，請在容器內執行 `chown -R 1001:1002 <檔案>`（數字換成你的 uid:gid，可在 Jetson 上執行 `id` 查詢）。
+- 因為有 `--rm`，離開時容器會被刪除。存在容器內（`/workspace` 以外）的東西，例如 `yolo predict` 預設的結果資料夾，也會一起消失。
 
 ### A.4 驗證
 在容器內執行：
@@ -49,6 +52,8 @@ python3 -c "import torch; print(torch.__version__, torch.cuda.is_available())"  
 python3 -c "import cv2; print([l.strip() for l in cv2.getBuildInformation().splitlines() if 'GStreamer' in l])"   # 要是 YES
 yolo predict model=models/best.pt source=test.jpg device=0                        # 模型可以正常載入並推論
 ```
+- 第一次執行時會印出 `Creating new Ultralytics Settings ...`，這是正常的。
+- `yolo predict` 的輸出要看到 `CUDA:0 (Orin, ...)`，代表用 GPU 推論。`no detections` 只是代表照片裡沒有目標物，不是錯誤。
 
 ## B. 原生安裝
 

@@ -38,10 +38,13 @@ docker run -d --name yolo --restart unless-stopped \
 - 更新流程的第 2、3 步改成在容器內 export，然後執行 `docker restart yolo`
 
 ## 更新流程
-1. 開發機：`scp best.pt user@<jetson-ip>:~/jetson-yolo-deploy/models/`
-2. Jetson：`bash scripts/export_model.sh`
-3. Jetson：`sudo systemctl restart yolo`
-4. 確認 `/health`、`/stream` 正常
+詳細步驟見 [04-model-export.md](04-model-export.md)。
+1. 開發機：`scp models\best_v2.pt jetson:~/jetson-yolo-deploy/models/`（用新檔名，保留舊模型以便換回）
+2. Jetson：進入 `jetson-yolo` 容器，執行 `MODEL=best_v2.pt bash scripts/export_model.sh`
+3. Jetson：
+   - systemd 原生部署：把 `deploy/yolo.service` 的 `MODEL_PATH` 改成新的 engine，再執行 `sudo systemctl daemon-reload && sudo systemctl restart yolo`
+   - Docker 部署：`docker rm -f yolo`，用新的 `-e MODEL_PATH=...` 重新 `docker run`（見 04 的 4.6）
+4. 確認 `/health` 顯示新的模型路徑，`/stream` 畫面正常
 
 ## 完成條件
 - [ ] 重新開機後，服務自動啟動

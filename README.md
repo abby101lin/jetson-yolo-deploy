@@ -53,25 +53,34 @@ jetson-yolo-deploy/
 
 > 第一次使用請先依 [docs/00-laptop-setup.md](docs/00-laptop-setup.md) 設定好自己的筆電（git、隱私檢查、SSH 金鑰）。
 
+以下是 Docker 方案（推薦）。`jetson` 是 00 設定的 SSH 別名。
+
 ```bash
-# 1. 開發機：上傳專案與模型
-scp -r jetson-yolo-deploy user@<jetson-ip>:~/
-scp best.pt user@<jetson-ip>:~/jetson-yolo-deploy/models/
+# 1. Jetson：取得專案、檢查環境與相機
+git clone https://github.com/abby101lin/jetson-yolo-deploy.git && cd jetson-yolo-deploy
+bash scripts/check_env.sh                                    # 環境檢查（docs/01）
+bash scripts/test_camera.sh                                  # 相機測試 → test.jpg（docs/02）
+docker build -t jetson-yolo -f deploy/Dockerfile deploy      # 建立推論映像檔（docs/03）
 
-# 2. Jetson：依序執行
-cd ~/jetson-yolo-deploy
-bash scripts/check_env.sh          # 環境檢查
-bash scripts/test_camera.sh        # 相機測試 → models/../test.jpg
-bash scripts/export_model.sh       # 產生 models/best.engine
-pip3 install -r app/requirements.txt
-cd app && python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
+# 2. 開發機（PowerShell）：上傳模型
+scp models\best.pt jetson:~/jetson-yolo-deploy/models/
 
-# 3. 瀏覽器
-http://<jetson-ip>:8000/stream       # 即時畫面
-http://<jetson-ip>:8000/detections   # 偵測結果 JSON
+# 3. Jetson：在容器內轉換 TensorRT（docs/04，約 8 分鐘）
+docker run -it --rm --runtime=nvidia -v ~/jetson-yolo-deploy:/workspace jetson-yolo \
+  bash scripts/export_model.sh                               # 產生 models/best.engine
+
+# 4. Jetson：啟動推論服務，開機自動啟動（docs/06）
+docker run -d --name yolo --restart unless-stopped --ipc=host --runtime=nvidia --network host \
+  -v /tmp/argus_socket:/tmp/argus_socket -v ~/jetson-yolo-deploy:/workspace -w /workspace/app \
+  jetson-yolo python3 -m uvicorn server:app --host 0.0.0.0 --port 8000
+
+# 5. 開發機：建立 SSH tunnel，再用瀏覽器打開
+ssh -N -L 8000:localhost:8000 jetson
+#    http://localhost:8000/stream       即時畫面
+#    http://localhost:8000/detections   偵測結果 JSON
 ```
 
-完整步驟請依序閱讀 [docs/](docs/)。
+完整步驟請依序閱讀 [docs/](docs/)。原生安裝（不用 Docker）見 [docs/03](docs/03-inference-env.md) 的做法 B。
 
 ## 部署進度檢查表
 
