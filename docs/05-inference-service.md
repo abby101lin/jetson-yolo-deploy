@@ -29,6 +29,7 @@ FastAPI：
 | `IMGSZ` | `640` | 推論尺寸（要和 export 時一致） |
 | `CONF` | `0.25` | 信心分數門檻 |
 | `JPEG_QUALITY` | `80` | 串流畫質 |
+| `AXES_STEP` | `100` | 在 `/stream` 畫面畫 XY 軸刻度和格線的間距（像素），並標出每個框的中心座標；`0` 不畫 |
 
 ## 啟動
 
@@ -54,6 +55,8 @@ curl http://<jetson-ip>:8000/detections
 }
 ```
 
+`/stream` 畫面上的 XY 軸和 `xyxy` 用同一套影像座標：原點 (0, 0) 在左上角，x 往右、y 往下，單位是像素（範圍是 `CAM_WIDTH` × `CAM_HEIGHT`）。每個框中心的紅點旁會標出 `(x, y)`，方便對照 JSON 的數值。
+
 ## 遠端存取安全
 不要把 port 8000 直接開到公網。建議改用以下任一種方式：
 - SSH tunnel：`ssh -L 8000:localhost:8000 user@<jetson-ip>`，然後在本機瀏覽 `http://localhost:8000/stream`
@@ -71,7 +74,7 @@ curl http://<jetson-ip>:8000/detections
 
 | 日期 | 模型 | 相機解析度 | FPS | GPU 使用率 | 溫度 | 備註 |
 |---|---|---|---|---|---|---|
-| | | | | | | |
+| 2026-10-29 | `final.engine`（FP16，imgsz 640） | 1280×720 | 23～26 | — | — | 偵測氣球；開啟 XY 軸繪製後約 23 FPS |
 
 ## 完成條件
 - [ ] 遠端可以看到 `/stream` 畫面，而且框的位置正確
