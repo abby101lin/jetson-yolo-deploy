@@ -17,3 +17,6 @@ secrets/
 *.key
 id_rsa*
 id_ed25519*
+
+# 本機截圖（可能拍到私人環境，不進版控）
+captures/

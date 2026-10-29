@@ -19,6 +19,7 @@ CAM_FPS = int(os.getenv("CAM_FPS", "30"))
 IMGSZ = int(os.getenv("IMGSZ", "640"))
 CONF = float(os.getenv("CONF", "0.25"))
 JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "80"))
+AXES_STEP = int(os.getenv("AXES_STEP", "100"))  # pixel spacing of x/y axis ticks; 0 disables
 
 
 def gst_pipeline(sensor_id, width, height, fps):
@@ -28,6 +29,42 @@ def gst_pipeline(sensor_id, width, height, fps):
         f"nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! "
         f"video/x-raw,format=BGR ! appsink drop=1 max-buffers=1"
     )
+
+
+def put_label(img, text, org, scale=0.45):
+    # Black outline under white text so labels stay readable on any background.
+    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 3, cv2.LINE_AA)
+    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), 1, cv2.LINE_AA)
+
+
+def draw_axes(img, step, dets):
+    # Image coordinates, same as /detections xyxy: origin top-left, x to the right, y downward.
+    h, w = img.shape[:2]
+    grid = img.copy()
+    for x in range(step, w, step):
+        cv2.line(grid, (x, 0), (x, h), (255, 255, 255), 1)
+    for y in range(step, h, step):
+        cv2.line(grid, (0, y), (w, y), (255, 255, 255), 1)
+    cv2.addWeighted(grid, 0.25, img, 0.75, 0, img)
+
+    for x in range(step, w, step):
+        cv2.line(img, (x, 0), (x, 8), (0, 255, 255), 2)
+        put_label(img, str(x), (x - 12, 22))
+    for y in range(step, h, step):
+        cv2.line(img, (0, y), (8, y), (0, 255, 255), 2)
+        put_label(img, str(y), (12, y + 5))
+    put_label(img, "0", (4, 16))
+    # Axis arrows sit inside the tick rows so they don't cover the last tick labels.
+    cv2.arrowedLine(img, (w - 70, 40), (w - 15, 40), (0, 255, 255), 2, tipLength=0.3)
+    put_label(img, "x", (w - 88, 46), 0.6)
+    cv2.arrowedLine(img, (60, h - 70), (60, h - 15), (0, 255, 255), 2, tipLength=0.3)
+    put_label(img, "y", (68, h - 40), 0.6)
+
+    for d in dets:
+        x1, y1, x2, y2 = d["xyxy"]
+        cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
+        cv2.circle(img, (cx, cy), 4, (0, 0, 255), -1)
+        put_label(img, f"({cx},{cy})", (cx + 6, cy - 6))
 
 
 model = YOLO(MODEL_PATH, task=MODEL_TASK)
@@ -58,7 +95,10 @@ def infer_loop():
                 }
                 for b in r.boxes
             ]
-        _, jpg = cv2.imencode(".jpg", r.plot(), [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        annotated = r.plot()
+        if AXES_STEP > 0:
+            draw_axes(annotated, AXES_STEP, dets)
+        _, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
 
         now = time.time()
         with lock:
