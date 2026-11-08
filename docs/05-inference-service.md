@@ -27,9 +27,10 @@ FastAPI：
 | `SENSOR_ID` | `0` | CSI 相機編號 |
 | `CAM_WIDTH` / `CAM_HEIGHT` / `CAM_FPS` | `1280` / `720` / `30` | 相機擷取設定 |
 | `IMGSZ` | `640` | 推論尺寸（要和 export 時一致） |
-| `CONF` | `0.25` | 信心分數門檻 |
+| `CONF` | `0.5` | 信心分數門檻，低於這個值的框不畫也不回報 |
 | `JPEG_QUALITY` | `80` | 串流畫質 |
 | `AXES_STEP` | `100` | 在 `/stream` 畫面畫 XY 軸刻度和格線的間距（像素），並標出每個框的中心座標；`0` 不畫 |
+| `FLIP_METHOD` | `0` | 畫面翻轉（nvvidconv `flip-method`）。相機倒著裝時設 `2`，畫面轉 180 度，`/stream` 和 `/detections` 的座標都會是正的 |
 
 ## 啟動
 

@@ -17,16 +17,17 @@ CAM_WIDTH = int(os.getenv("CAM_WIDTH", "1280"))
 CAM_HEIGHT = int(os.getenv("CAM_HEIGHT", "720"))
 CAM_FPS = int(os.getenv("CAM_FPS", "30"))
 IMGSZ = int(os.getenv("IMGSZ", "640"))
-CONF = float(os.getenv("CONF", "0.25"))
+CONF = float(os.getenv("CONF", "0.5"))
 JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "80"))
 AXES_STEP = int(os.getenv("AXES_STEP", "100"))  # pixel spacing of x/y axis ticks; 0 disables
+FLIP_METHOD = int(os.getenv("FLIP_METHOD", "0"))  # nvvidconv flip-method; 2 = rotate 180 for an upside-down camera
 
 
 def gst_pipeline(sensor_id, width, height, fps):
     return (
         f"nvarguscamerasrc sensor-id={sensor_id} ! "
         f"video/x-raw(memory:NVMM),width={width},height={height},framerate={fps}/1 ! "
-        f"nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! "
+        f"nvvidconv flip-method={FLIP_METHOD} ! video/x-raw,format=BGRx ! videoconvert ! "
         f"video/x-raw,format=BGR ! appsink drop=1 max-buffers=1"
     )
 
